@@ -13,9 +13,14 @@ go_image: &go_image
   docker:
     - image: cimg/go:1.24.9
 
+go_node_image: &go_node_image
+  resource_class: small
+  docker:
+    - image: cimg/go:1.25-node
+
 jobs:
   security-scans:
-    <<: *defaults
+    <<: *go_node_image
     steps:
       - checkout
       - run:
@@ -88,13 +93,11 @@ workflows:
           name: Test TS code
           requires:
             - Scan repository for secrets
-            - Security Scans
 
       - test_go:
           name: Test Go code
           requires:
             - Scan repository for secrets
-            - Security Scans
 
       - release:
           name: Release
