@@ -275,7 +275,9 @@ func (dg *DepGraph) validateRootNotReferenced() error {
 }
 
 // ContentHash returns a deterministic hash of the graph structure for content-addressing.
-// Structurally equivalent graphs (same deps, PkgInfo, NodeInfo; root package may differ) must produce the same hash.
+// Structurally equivalent graphs (same root, deps, PkgInfo, NodeInfo) produce the same hash;
+// any difference, including in the root node, produces a different hash. This mirrors the
+// @snyk/dep-graph TypeScript DepGraph.equals() default (compareRoot=true).
 // If BuildGraph hasn't been called already on the DepGraph, this function will invoke the method first.
 func (dg *DepGraph) ContentHash() []byte {
 	if dg.pkgIdx == nil || dg.nodeIdx == nil {
@@ -317,8 +319,9 @@ func (dg *DepGraph) hashGraphRecursively(node *Node, visited map[*Node]struct{},
 	visited[node] = struct{}{}
 	defer func() { delete(visited, node) }()
 
-	if node.pkg != nil && node != dg.rootNode {
-		// PkgInfo: name, version, purl (canonical order)
+	if node.pkg != nil {
+		// PkgInfo: name, version, purl (canonical order). The root node is included
+		// to match the TS DepGraph.equals() default (compareRoot=true).
 		w.WriteString("pkg:")
 		w.WriteString(node.pkg.Info.Name)
 		w.WriteByte(0)
