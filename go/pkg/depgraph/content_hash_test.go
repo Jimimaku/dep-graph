@@ -36,6 +36,10 @@ var (
 	contentHashCyclesOneNodeA []byte
 	//go:embed testdata/equals/cycles/one-node-cycle-b.json
 	contentHashCyclesOneNodeB []byte
+	//go:embed testdata/equals/pnpm-root-version-a.json
+	contentHashPnpmRootVersionA []byte
+	//go:embed testdata/equals/pnpm-root-version-b.json
+	contentHashPnpmRootVersionB []byte
 )
 
 func mustParseContentHash(t *testing.T, data []byte) *DepGraph {
@@ -47,17 +51,40 @@ func mustParseContentHash(t *testing.T, data []byte) *DepGraph {
 
 // --- ContentHash tests ---
 
-func TestContentHash_StructurallySameGraphs_SameHash(t *testing.T) {
-	// Same dependency structure, different root pkg version (simple vs simple-different-root)
-	a := mustParseContentHash(t, contentHashSimple)
-	b := mustParseContentHash(t, contentHashSimpleDifferentRoot)
+// TestContentHash_RootDiffers_DifferentHash pins the contract that the root node
+// is part of the content hash. Mirrors the TS DepGraph.equals() default
+// (compareRoot=true): two graphs whose only difference is the root pkg must
+// hash differently. Each subtest exercises a different fixture shape.
+func TestContentHash_RootDiffers_DifferentHash(t *testing.T) {
+	cases := []struct {
+		name string
+		a, b []byte
+	}{
+		{
+			name: "pnpm root-only graph",
+			a:    contentHashPnpmRootVersionA,
+			b:    contentHashPnpmRootVersionB,
+		},
+		{
+			name: "maven graph with deps",
+			a:    contentHashSimple,
+			b:    contentHashSimpleDifferentRoot,
+		},
+	}
 
-	hashA := a.ContentHash()
-	hashB := b.ContentHash()
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := mustParseContentHash(t, tc.a)
+			b := mustParseContentHash(t, tc.b)
 
-	require.NotNil(t, hashA)
-	require.NotNil(t, hashB)
-	assert.Equal(t, hashA, hashB, "structurally same graphs must produce same content hash")
+			hashA := a.ContentHash()
+			hashB := b.ContentHash()
+
+			require.NotNil(t, hashA)
+			require.NotNil(t, hashB)
+			assert.NotEqual(t, hashA, hashB, "graphs differing only in the root node must have different hashes")
+		})
+	}
 }
 
 func TestContentHash_SameGraphDifferentNodeIDs_SameHash(t *testing.T) {
