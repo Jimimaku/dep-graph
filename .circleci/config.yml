@@ -6,7 +6,7 @@ orbs:
 defaults: &defaults
   resource_class: small
   docker:
-    - image: cimg/node:14.19
+    - image: cimg/node:22.22
 
 go_image: &go_image
   resource_class: small
@@ -68,7 +68,9 @@ jobs:
           command: npm install
       - run:
           name: Release
-          command: npx semantic-release@17
+          command: |
+            export NPM_ID_TOKEN=$(circleci run oidc get --claims '{"aud": "npm:registry.npmjs.org"}')
+            npx semantic-release@25
 
 workflows:
   version: 2
@@ -104,7 +106,9 @@ workflows:
           requires:
             - Test TS code
             - Test Go code
-          context: nodejs-lib-release
+          context:
+            - nodejs-install
+            - github-release
           filters:
             branches:
               only:
