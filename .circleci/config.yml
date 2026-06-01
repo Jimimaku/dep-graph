@@ -81,10 +81,6 @@ workflows:
           context:
             - snyk-bot-slack
           channel: snyk-vuln-alerts-arch
-          filters:
-            branches:
-              ignore:
-                - master
 
       - security-scans:
           name: Security Scans
@@ -93,13 +89,9 @@ workflows:
 
       - test_ts:
           name: Test TS code
-          requires:
-            - Scan repository for secrets
 
       - test_go:
           name: Test Go code
-          requires:
-            - Scan repository for secrets
 
       - release:
           name: Release
